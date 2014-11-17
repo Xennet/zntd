@@ -1,0 +1,32 @@
+#!/bin/sh
+
+if [ x$1 \!= x--debug-metrics ]; then
+	echo "Usage: $( basename $0 ) <options>"
+	echo "Zennet metrics collecting deamon (stub)"
+	echo
+	echo -e "--debug-metrics\tCollect the metrics to be written to etcd, prints them and exit"
+	exit 1
+fi
+
+CONTAINERS=$( /usr/bin/docker ps -q --no-trunc 2>/dev/null )
+if [ $? -ne 0 ]; then
+	echo "$( basename $0 ):error listing docker containers, permissions?"
+	exit 2
+fi
+ 
+CGROUPS_PATH=$( grep cgroup /proc/mounts | head -n 1 | cut -f 2 -d ' ' )
+
+for CONTAINER in $CONTAINERS; do
+	for CONTROLLER in memory.\* cpuacct.\* blkio.\*; do
+		for METRICFILE in $( find $CGROUPS_PATH -path $CGROUPS_PATH/*$CONTAINER*/$CONTROLLER | grep -v $CONTAINER.mount); do
+			CONTROLLER_NAME=$( echo $METRICFILE | rev | cut -d / -f 1 | rev )
+			for LINE in $( cat $METRICFILE 2>/dev/null | tr ' ' . ); do
+				L=$CONTAINER.$CONTROLLER_NAME.$LINE
+				echo $( echo $L | rev | cut -d . -f 2- | rev )=$( echo $L | rev | cut -d . -f 1 | rev )
+			done 
+		done
+	done
+done
+
+exit 0
+
