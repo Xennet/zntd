@@ -18,7 +18,7 @@ CGROUPS_PATH=$( grep cgroup /proc/mounts | head -n 1 | cut -f 2 -d ' ' )
 
 for CONTAINER in $CONTAINERS; do
 	for CONTROLLER in memory.\* cpuacct.\* blkio.\*; do
-		for METRICFILE in $( find $CGROUPS_PATH -path $CGROUPS_PATH/*$CONTAINER*/$CONTROLLER | grep -v $CONTAINER.mount); do
+		for METRICFILE in $( find $CGROUPS_PATH -path $CGROUPS_PATH/*$CONTAINER*/$CONTROLLER | grep -P -v $CONTAINER.mount\|cpuacct.usage_percpu ); do
 			CONTROLLER_NAME=$( echo $METRICFILE | rev | cut -d / -f 1 | rev )
 			for LINE in $( cat $METRICFILE 2>/dev/null | tr ' ' . ); do
 				L=$CONTAINER.$CONTROLLER_NAME.$LINE
